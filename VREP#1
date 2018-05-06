@@ -1,0 +1,77 @@
+-- DO NOT WRITE CODE OUTSIDE OF THE if-then-end SECTIONS BELOW!! (unless the code is a function definition)
+
+if (sim_call_type==sim_childscriptcall_initialization) then
+    -- i is a global variable
+    i = 1
+    simAddStatusbarMessage('initialization')
+    bodyElements=simGetObjectHandle('ePuck_bodyElements')
+    leftMotor=simGetObjectHandle('ePuck_leftJoint')
+    rightMotor=simGetObjectHandle('ePuck_rightJoint')
+    ePuck=simGetObjectHandle('ePuck')
+    ePuckBase=simGetObjectHandle('ePuck_base')
+    proxSens={-1,-1,-1,-1,-1,-1,-1,-1}
+    for i=1,8,1 do
+        proxSens[i]=simGetObjectHandle('ePuck_proxSensor'..i)
+    end
+    maxVel=120*math.pi/180
+    velLeft=0
+    velRight=0
+end
+
+
+if (sim_call_type==sim_childscriptcall_actuation) then
+    -- i increment
+    i = i + 1
+    -- print message
+    simAddStatusbarMessage(i..'- actuation')
+    currentTime=simGetSimulationTime()
+    simSetJointTargetVelocity(leftMotor,velLeft)
+    simSetJointTargetVelocity(rightMotor,velRight)
+
+end
+
+
+if (sim_call_type==sim_childscriptcall_sensing) then
+    -- print message
+    simAddStatusbarMessage(i..'- sensing')
+    s=simGetObjectSizeFactor(bodyElements) -- make sure that if we scale the robot during simulation, other values are scaled too!
+    simAddStatusbarMessage('s='..s)
+    noDetectionDistance=0.05*s
+    proxSensDist={noDetectionDistance,noDetectionDistance,noDetectionDistance,noDetectionDistance,noDetectionDistance,noDetectionDistance,noDetectionDistance,noDetectionDistance}
+    for i=1,8,1 do
+        res,dist=simReadProximitySensor(proxSens[i])
+        if (res>0) and (dist<noDetectionDistance) then
+            proxSensDist[i]=dist
+            --if(proxSensDist[i] < 0.2) then
+                simAddStatusbarMessage(string.format("Proximity[%d]: %f", i, proxSensDist[i]))     
+            --end
+        end
+    end
+    if(proxSensDist[7] < 0.2) and (proxSensDist[8] < 0.2 ) then
+        velRight=maxVel
+        velLeft=maxVel
+    elseif (proxSensDist[5] < 0.1) or (proxSensDist[6] < 0.1 ) then
+        velRight=maxVel/2
+        velLeft=maxVel*-1
+    elseif (proxSensDist[1] < 0.1) or (proxSensDist[2] < 0.1 ) then
+        velRight=maxVel*-1
+        velLeft=maxVel/2
+    elseif (proxSensDist[3] < 0.2) then
+        velRight=-1
+        velLeft=2
+    elseif (proxSensDist[4] < 0.2 ) then
+        velRight=2
+        velLeft=-1
+    else
+        velRight=maxVel/5
+        velLeft=maxVel/5
+    end
+
+end
+
+
+if (sim_call_type==sim_childscriptcall_cleanup) then
+
+    -- Put some restoration code here
+
+end
